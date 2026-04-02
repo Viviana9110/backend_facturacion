@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 
 const clientSchema = new mongoose.Schema({
+  identification: String,
   name: String,
   email: String,
-  phone: String,
-  identification: String,
+  phone: String,  
   address: String
 }, { timestamps: true });
 

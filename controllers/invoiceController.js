@@ -5,17 +5,22 @@ import { createFactusInvoice } from "../service/factusService.js";
 
 export const createInvoice = async (req, res) => {
   try {
-    const { clientId, items } = req.body;
+    const { clientId, items, date, paymentMethod } = req.body;
 
-    // 🔥 1. Cliente
+    if (!clientId) {
+      return res.status(400).json({ msg: "Cliente requerido" });
+    }
+
+    if (!items || items.length === 0) {
+      return res.status(400).json({ msg: "Debe agregar productos" });
+    }
+
     const client = await Client.findById(clientId);
     if (!client) {
       return res.status(404).json({ msg: "Cliente no encontrado" });
     }
 
     let subtotal = 0;
-
-    // 🔥 2. Productos → FACTUS format
     const factusItems = [];
     const dbItems = [];
 
@@ -23,98 +28,129 @@ export const createInvoice = async (req, res) => {
       const product = await Product.findById(item.productId);
       if (!product) continue;
 
-      subtotal += product.price * item.quantity;
+      const quantity = Number(item.quantity);
+
+      subtotal += product.price * quantity;
 
       factusItems.push({
         code_reference: product._id.toString(),
         name: product.name,
-        quantity: item.quantity,
+        quantity,
         price: product.price,
         tax_rate: 19,
-
         unit_measure_id: 70,
         standard_code_id: 1,
         tribute_id: 1,
         is_excluded: 0,
-        discount_rate: 0
-        
+        discount_rate: 0,
       });
 
-      // 🔥 Para MongoDB
       dbItems.push({
         product: product._id,
-        quantity: item.quantity,
-        price: product.price
+        quantity,
+        price: product.price,
       });
     }
 
     const tax = subtotal * 0.19;
     const total = subtotal + tax;
 
-    // 🔥 3. Payload completo
+    // ✅ MAPEO CORRECTO
+    const paymentMap = {
+      Efectivo: { form: "1", method: "10" },
+      Transferencia: { form: "1", method: "42" },
+      Tarjeta: { form: "1", method: "48" },
+      Crédito: { form: "2", method: "10" },
+    };
+
+    const selectedPayment =
+      paymentMap[paymentMethod] || paymentMap["Efectivo"];
+
+    // ✅ PAYLOAD CORRECTO
     const payload = {
-      reference_code: `fact-${Date.now()}`, // 🔥 único
+      reference_code: `fact-${Date.now()}`,
+
       customer: {
-        identification: "123456789", // ⚠️ mejor guardarlo en DB
+        identification: client.identification || "222222222",
         identification_document_id: 1,
         names: client.name,
-        address: "N/A",
+        address: client.address || "N/A",
         email: client.email,
-        phone: client.phone
+        phone: client.phone || "0000000000",
       },
-      items: factusItems
+
+      // 🔥 SEPARADOS (CLAVE)
+     payment_form: selectedPayment.form,
+    payment_method: selectedPayment.method,
+
+      items: factusItems,
     };
-    console.log(payload.customer);
 
-    // 🔥 4. Enviar a FACTUS
+    console.log("📤 Payload enviado a Factus:", payload);
+
     const factusResponse = await createFactusInvoice(payload);
-
     const bill = factusResponse?.data?.bill;
 
-     // 🔥 GUARDAR EN MONGODB
+    console.log("🔥 RESPUESTA FACTUS COMPLETA:");
+    console.dir(factusResponse.data, { depth: null });
+    console.log(factusResponse.data);
+
+console.log("🔥 BILL:", bill);
+console.log("🔥 NUMBER:", bill?.number);
+
+    const qr = bill?.qr_image || "";
+const cufe = bill?.cufe || "";
+const publicUrl = bill?.public_url || "";
+
     const newInvoice = new Invoice({
-      client: client._id,
-      items: dbItems,
-      subtotal,
-      tax,
-      total,
-      factusId: bill?.id || null,
-      referenceCode: payload.reference_code,
+  client: client._id,
+  items: dbItems,
+  subtotal,
+  tax,
+  total,
+  date: date || new Date(),
+  paymentMethod,
 
-      dianNumber: bill?.number || "",
-  qrCode: bill?.qr_image || "",
-  publicUrl: bill?.public_url || ""
-    });
+  factusId: bill?.id || null,
+  referenceCode: payload.reference_code,
+  dianNumber: bill?.number || "",
+  qrCode: qr,
+  cufe: cufe,
+  publicUrl: publicUrl,
+});
 
-    await newInvoice.save()
+    await newInvoice.save();
+    console.log("🔥 NUMBER:", bill?.number);
 
     res.json({
       msg: "Factura creada correctamente",
-      factus: factusResponse,
-      invoice: newInvoice
+      factus: bill,
+      invoice: newInvoice,
     });
 
   } catch (error) {
-    console.error(error.response?.data || error.message);
+    console.error(
+      "❌ ERROR FACTUS:",
+      JSON.stringify(error.response?.data, null, 2) || error.message
+    );
 
     res.status(500).json({
       msg: "Error creando factura",
-      error: error.response?.data || error.message
+      error: error.response?.data || error.message,
     });
   }
 };
-
 export const getInvoices = async (req, res) => {
   try {
     const invoices = await Invoice.find()
-      .populate("client") // 🔥 importante
-      .populate("items.product") // 🔥 trae productos también
+      .populate("client")
+      .populate("items.product")
       .sort({ createdAt: -1 });
 
     res.json(invoices);
   } catch (error) {
     res.status(500).json({
-      msg: "Error obteniendo facturas"
+      msg: "Error obteniendo facturas",
     });
   }
 };
@@ -132,7 +168,7 @@ export const getInvoiceById = async (req, res) => {
     res.json(invoice);
   } catch (error) {
     res.status(500).json({
-      msg: "Error obteniendo factura"
+      msg: "Error obteniendo factura",
     });
   }
 };

@@ -16,10 +16,15 @@ const invoiceSchema = new mongoose.Schema({
   tax: Number,
   total: Number,
 
+  date: Date,
+  paymentMethod: String,
+  status: { type: String, default: "aprobada" },
+
   factusId: Number,
   referenceCode: String,
   dianNumber: String,
   qrCode: String,
+  cufe: String,
   publicUrl: String
 
 }, { timestamps: true });

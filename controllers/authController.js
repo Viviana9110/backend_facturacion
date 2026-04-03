@@ -7,6 +7,9 @@ export const register = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    console.log("EMAIL:", email);
+    console.log("JWT_SECRET:", process.env.JWT_SECRET);
+    
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ msg: "Usuario ya existe" });
 

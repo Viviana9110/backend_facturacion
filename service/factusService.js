@@ -11,8 +11,8 @@ export const getFactusToken = async () => {
   params.append("grant_type", "password");
   params.append("client_id", process.env.CLIENT_ID);
   params.append("client_secret", process.env.CLIENT_SECRET);
-  params.append("username", "sandbox@factus.com.co");
-  params.append("password", "sandbox2024%");
+  params.append("username", process.env.EMAIL);
+  params.append("password", process.env.PASSWORD);
 
   const res = await API.post("/oauth/token", params, {
     headers: {

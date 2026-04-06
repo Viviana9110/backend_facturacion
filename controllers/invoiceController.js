@@ -125,6 +125,8 @@ const publicUrl = bill?.public_url || "";
     res.json({
       msg: "Factura creada correctamente",
       factus: bill,
+      invoiceNumber: bill?.number,
+      publicUrl: publicUrl,
       invoice: newInvoice,
     });
 

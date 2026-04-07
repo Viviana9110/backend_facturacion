@@ -66,7 +66,7 @@ export const createInvoice = async (req, res) => {
     const selectedPayment =
       paymentMap[paymentMethod] || paymentMap["Efectivo"];
 
-    // ✅ PAYLOAD CORRECTO
+    // PAYLOAD 
     const payload = {
       reference_code: `fact-${Date.now()}`,
 
@@ -79,7 +79,7 @@ export const createInvoice = async (req, res) => {
         phone: client.phone || "0000000000",
       },
 
-      // 🔥 SEPARADOS (CLAVE)
+      
      payment_form: selectedPayment.form,
     payment_method: selectedPayment.method,
 
@@ -91,12 +91,12 @@ export const createInvoice = async (req, res) => {
     const factusResponse = await createFactusInvoice(payload);
     const bill = factusResponse?.data?.bill;
 
-    console.log("🔥 RESPUESTA FACTUS COMPLETA:");
+    console.log("RESPUESTA FACTUS COMPLETA:");
     console.dir(factusResponse.data, { depth: null });
     console.log(factusResponse.data);
 
-console.log("🔥 BILL:", bill);
-console.log("🔥 NUMBER:", bill?.number);
+console.log("BILL:", bill);
+console.log("NUMBER:", bill?.number);
 
     const qr = bill?.qr_image || "";
 const cufe = bill?.cufe || "";
@@ -120,7 +120,7 @@ const publicUrl = bill?.public_url || "";
 });
 
     await newInvoice.save();
-    console.log("🔥 NUMBER:", bill?.number);
+    console.log("NUMBER:", bill?.number);
 
     res.json({
       msg: "Factura creada correctamente",
@@ -132,7 +132,7 @@ const publicUrl = bill?.public_url || "";
 
   } catch (error) {
     console.error(
-      "❌ ERROR FACTUS:",
+      "ERROR FACTUS:",
       JSON.stringify(error.response?.data, null, 2) || error.message
     );
 

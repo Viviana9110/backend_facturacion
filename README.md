@@ -26,7 +26,7 @@ Se desarrolló una API utilizando Node.js y Express con arquitectura por capas, 
 
 - Node.js
 - Express
-- MySQL
+- MongoDB
 - JavaScript
 
 ---
